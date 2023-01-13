@@ -23,7 +23,7 @@ server.use(express.json());
 server.post("/participants", async (req, res) => {
     const { name } = req.body;
     try {
-        Joi.string().min(1).validate(name)
+        await Joi.string().min(1).required().validateAsync(name)
         if(await db.collection("participants").findOne({ name: name })){res.status(409).send('usuario ja cadastrado') }
         await db.collection("participants").insertOne({ name, lastStatus: Date.now() })
         await db.collection("messages").insertOne({from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH,MM,SS')});
@@ -35,12 +35,32 @@ server.post("/participants", async (req, res) => {
     }
 })
 
-server.get("/participants",async(req,res)=>{
+server.get("/participants",async(_,res)=>{
     try {
         const response = await db.collection("participants").find().toArray()
         res.send(response)
     } catch (error) {
         console.log(error)
+        res.sendStatus(422);
+    }
+})
+
+server.post("/messages", async (req, res) => {
+    const body = req.body;
+    const head = req.headers;
+    const schema = Joi.object({
+        to: Joi.string().min(1).required(),
+        text: Joi.string().min(1).required(),
+        type: Joi.string().valid('message','private_message').required(),
+    })
+    try {
+        await schema.validateAsync(body)
+        if(!await db.collection("participants").findOne({ name: head.user })){throw new Error() }
+        await db.collection("messages").insertOne({from: head.user, to: body.name, text: body.text, type: body.type, time: dayjs().format('HH,MM,SS')});
+        res.sendStatus(201);
+    }
+    catch (err) {
+        console.log(err);
         res.sendStatus(422);
     }
 })
