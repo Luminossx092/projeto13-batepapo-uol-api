@@ -26,11 +26,10 @@ server.post("/participants", async (req, res) => {
         await Joi.string().min(1).required().validateAsync(name)
         if(await db.collection("participants").findOne({ name: name })){res.status(409).send('usuario ja cadastrado') }
         await db.collection("participants").insertOne({ name, lastStatus: Date.now() })
-        await db.collection("messages").insertOne({from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH,MM,SS')});
+        await db.collection("messages").insertOne({from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH,mm,ss')});
         res.sendStatus(201);
     }
     catch (err) {
-        console.log(err);
         res.sendStatus(422);
     }
 })
@@ -40,7 +39,6 @@ server.get("/participants",async(_,res)=>{
         const response = await db.collection("participants").find().toArray()
         res.send(response)
     } catch (error) {
-        console.log(error)
         res.sendStatus(422);
     }
 })
@@ -56,11 +54,24 @@ server.post("/messages", async (req, res) => {
     try {
         await schema.validateAsync(body)
         if(!await db.collection("participants").findOne({ name: head.user })){throw new Error() }
-        await db.collection("messages").insertOne({from: head.user, to: body.name, text: body.text, type: body.type, time: dayjs().format('HH,MM,SS')});
+        await db.collection("messages").insertOne({from: head.user, to: body.to, text: body.text, type: body.type, time: dayjs().format('HH,MM,SS')});
         res.sendStatus(201);
     }
     catch (err) {
-        console.log(err);
+        res.sendStatus(422);
+    }
+})
+
+server.get("/messages",async(req,res)=>{
+    const limit = parseInt(req.query.limit)
+    console.log(limit)
+    try {
+        const response = await db.collection("messages")
+        .find({$or:[{from:req.headers.user},{type:{$not:/private_message/}}]})
+        .limit(limit)
+        .toArray()
+        res.send(response)
+    } catch (error) {
         res.sendStatus(422);
     }
 })
