@@ -76,6 +76,17 @@ server.get("/messages",async(req,res)=>{
     }
 })
 
+server.post("/status",async(req,res)=>{
+    try {
+        const result = await db.collection("participants")
+        .updateOne({name:req.headers.user},{$set: {lastStatus: Date.now()}})
+        if(result.modifiedCount === 0){res.sendStatus(404);}
+        res.send()
+    } catch (error) {
+        res.sendStatus(422);
+    }
+})
+
 const PORT = 5000;
 server.listen(PORT, () => console.log('servidor funcionando'))
 
