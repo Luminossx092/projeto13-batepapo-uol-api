@@ -23,7 +23,7 @@ server.use(express.json());
 server.post("/participants", async (req, res) => {
     const { name } = req.body;
     const validation = Joi.string().min(1).required().validate(name, { abortEarly: true });
-     
+
     if (validation.error) {
         return res.status(422).send(validation.error.details)
     }
@@ -61,7 +61,7 @@ server.post("/messages", async (req, res) => {
         return res.status(422).send(validation.error.details)
     }
     try {
-        if (!await db.collection("participants").findOne({ name: head.user })) {throw new Error() }
+        if (!await db.collection("participants").findOne({ name: head.user })) { throw new Error() }
         await db.collection("messages").insertOne({ from: head.user, to: body.to, text: body.text, type: body.type, time: dayjs().format('HH:mm:ss') });
         return res.sendStatus(201);
     }
@@ -71,15 +71,15 @@ server.post("/messages", async (req, res) => {
 })
 
 server.get("/messages", async (req, res) => {
-    const limit = parseInt(req.query.limit);
-    if(limit<=0)return res.sendStatus(422);
-    if(!limit)limit = 0;
+    let limit = parseInt(req.query.limit);
+    if (limit <= 0) return res.sendStatus(422);
     try {
         const response = await db.collection("messages")
             .find({ $or: [{ from: req.headers.user }, { type: { $not: /private_message/ } }] })
-            .sort({_id:-1})
+            .sort({ _id: -1 })
             .limit(limit)
             .toArray();
+        if(response.length ==0)return res.sendStatus(422);
         return res.send(response)
     } catch (error) {
         return res.sendStatus(422);
@@ -100,7 +100,7 @@ server.post("/status", async (req, res) => {
 setInterval(() => automaticRemoveInactiveUsers(), 15000);
 async function automaticRemoveInactiveUsers() {
     try {
-        const result = await db.collection("participants").find({lastStatus: {$lte: Date.now()-15000}}).toArray()
+        const result = await db.collection("participants").find({ lastStatus: { $lte: Date.now() - 15000 } }).toArray()
         const toInsertArr = result.map(participant => {
             return {
                 from: participant.name,
@@ -110,7 +110,7 @@ async function automaticRemoveInactiveUsers() {
                 time: dayjs().format('HH:mm:ss')
             }
         })
-        await db.collection("participants").deleteMany({name:{$in: result.map(doc=>doc.name)}});
+        await db.collection("participants").deleteMany({ name: { $in: result.map(doc => doc.name) } });
         await db.collection("messages").insertMany(toInsertArr);
     } catch (error) {
 
