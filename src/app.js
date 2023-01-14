@@ -71,14 +71,15 @@ server.post("/messages", async (req, res) => {
 })
 
 server.get("/messages", async (req, res) => {
-    const limit = parseInt(req.query.limit)
-    if(limit<=0)return res.sendStatus(422)
+    const limit = parseInt(req.query.limit);
+    if(limit<=0)return res.sendStatus(422);
+    if(!limit)limit = 0;
     try {
         const response = await db.collection("messages")
             .find({ $or: [{ from: req.headers.user }, { type: { $not: /private_message/ } }] })
             .sort({_id:-1})
             .limit(limit)
-            .toArray()
+            .toArray();
         return res.send(response)
     } catch (error) {
         return res.sendStatus(422);
